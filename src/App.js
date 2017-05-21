@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import './App.css';
 import PollList from './components/PollListComponent';
-import { Modal, Button, FormGroup, InputGroup, FormControl, ControlLabel } from 'react-bootstrap';
+import Modals from './components/ModalsComponent';
+import { Button } from 'react-bootstrap';
 import * as firebase from 'firebase';
 
 class App extends Component {
@@ -10,11 +11,15 @@ class App extends Component {
     super(props);
     this.state = {
       polls: [],
-      username: 'undefined',
-      vote: null,
-      title: 'Poll Title',
-      options: [],
-      showModal: false
+      username: '',
+      title: '',
+      options: {},
+      votingPeriod: null,
+      showModal: false,
+      showDetailModal: false,
+      showResultModal: false,
+      showAnotherModal: false,
+      optionVoted: null
     }
   }
 
@@ -31,9 +36,10 @@ class App extends Component {
     // })
 
     pollRef.on('child_added', snap => {
-      console.log(snap.val());
+      console.log('value!!', snap.val());
       this.setState({
-        polls: this.state.polls.concat(snap.val())
+        polls: this.state.polls.concat(snap.val()),
+        votingPeriod: snap.val().votingPeriod
       })
     })
 
@@ -54,14 +60,15 @@ class App extends Component {
     })
   }
 
-  createNewPoll (uid, username, title, options) {
+  createNewPoll (uid, username, title, options, period) {
 
     var pollData = {
       creator: username,
       uid: uid,
       options: options,
       title: title,
-      voteCount: 0
+      voteCount: 0,
+      votingPeriod: period
     };
 
     // Get a key for a new Poll.
@@ -81,20 +88,76 @@ class App extends Component {
     })
   }
 
-  close () {
+  openAnotherModal () {
     this.setState({
-      showModal: false
+      showAnotherModal: true
     })
   }
 
-  handleOptions () {
-    const pollOptions = {}
-    pollOptions[this.opOne.value] = 0;
-    pollOptions[this.opTwo.value] = 0;
-    pollOptions[this.opThree.value] = 0;
+  openDetailModal () {
+    this.setState({
+      showDetailModal: true
+    })
+  }
 
-    this.createNewPoll(0, this.state.username, this.state.title, pollOptions);
+  close () {
+    this.setState({
+      showModal: false,
+      showDetailModal: false,
+      showResultModal: false,
+      showAnotherModal: false
+    })
+  }
+
+  handleTitle (e) {
+    this.setState({
+      title: e.target.value
+    })
+  }
+
+  handleUsername (e) {
+    this.setState({
+      username: e.target.value
+    })
+  }
+
+  handleOptions (opOne, opTwo, opThree) {
+    const pollOptions = {}
+    pollOptions[opOne.value] = 0;
+    pollOptions[opTwo.value] = 0;
+    pollOptions[opThree.value] = 0;
+
+    this.createNewPoll(0, this.state.username, this.state.title, pollOptions, this.state.votingPeriod);
     this.close();
+  }
+
+  handleDate (votingPeriod) {
+    this.setState({
+      votingPeriod: votingPeriod
+    })
+  }
+
+  handlePolls (poll) {
+    this.setState({
+      username: poll.creator,
+      title: poll.title,
+      options: poll.options,
+      votingPeriod: poll.votingPeriod
+    })
+  }
+
+  handleVoting (e) {
+    this.setState({
+      optionVoted: e.target.value
+    })
+  }
+
+  handleSubmit (e) {
+    this.setState({
+      options: this.state.options[this.state.optionVoted]++,
+      showDetailModal: false,
+      showResultModal: true
+    })
   }
 
   deletePoll () {
@@ -110,63 +173,36 @@ class App extends Component {
   }
 
   render() {
-    const pollModal = (
-      <Modal show={this.state.showModal} onHide={this.close.bind(this)}>
-        <Modal.Header>
-          <Modal.Title>Create Poll</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-          <form className="option-group" >
-          <FormGroup controlId="poll_title">
-            <ControlLabel>Set your poll title</ControlLabel>
-            <FormControl onChange={(e) => { this.setState({ title: e.target.value }); }} type="text" placeholder="type your poll title"/>
-          </FormGroup>
-          <FormGroup controlId="username">
-            <ControlLabel>Name</ControlLabel>
-            <FormControl onChange={(e) => { this.setState({ username: e.target.value }); }} type="text" placeholder="type your name"/>
-          </FormGroup>
-          <FormGroup controlId="option_1">
-            <InputGroup>
-              <InputGroup.Addon>
-                <input type="radio" aria-label="..." />
-              </InputGroup.Addon>
-              <FormControl inputRef={ref => { this.opOne = ref; }} type="text" placeholder="type your option" />
-            </InputGroup>
-          </FormGroup>
-          <FormGroup controlId="option_2">
-            <InputGroup>
-              <InputGroup.Addon>
-                <input type="radio" aria-label="..." />
-              </InputGroup.Addon>
-              <FormControl inputRef={ref => { this.opTwo = ref; }} type="text" placeholder="type your option" />
-            </InputGroup>
-          </FormGroup>
-          <FormGroup controlId="option_3">
-            <InputGroup>
-              <InputGroup.Addon>
-                <input type="radio" aria-label="..." />
-              </InputGroup.Addon>
-              <FormControl inputRef={ref => { this.opThree = ref; }} type="text" placeholder="type your option" />
-            </InputGroup>
-          </FormGroup>
-          </form>
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button onClick={this.close.bind(this)}>Close</Button>
-          <Button bsStyle="primary" onClick={this.handleOptions.bind(this)}>Create Poll</Button>
-        </Modal.Footer>
-
-      </Modal>
-    );
-
     return (
       <div className="App">
-        <PollList />
+        <PollList
+          username={this.state.username}
+          polls={this.state.polls}
+          votingPeriod={this.state.votingPeriod}
+          openAnotherModal={this.openAnotherModal.bind(this)}
+          openDetailModal={this.openDetailModal.bind(this)}
+          close={this.close.bind(this)}
+          handlePolls={this.handlePolls.bind(this)}
+        />
         <Button bsStyle="primary" onClick={this.open.bind(this)}>Create Poll</Button>
         <Button onClick={this.deletePoll.bind(this)}>Delete Poll</Button>
-        {pollModal}
+        <Modals
+          showModal={this.state.showModal}
+          showDetailModal={this.state.showDetailModal}
+          showResultModal={this.state.showResultModal}
+          showAnotherModal={this.state.showAnotherModal}
+          close={this.close.bind(this)}
+          title={this.state.title}
+          username={this.state.username}
+          options={this.state.options}
+          votingPeriod={this.state.votingPeriod}
+          handleTitle={this.handleTitle.bind(this)}
+          handleUsername={this.handleUsername.bind(this)}
+          handleOptions={this.handleOptions.bind(this)}
+          handleDate={this.handleDate.bind(this)}
+          handleVoting={this.handleVoting.bind(this)}
+          handleSubmit={this.handleSubmit.bind(this)}
+        />
       </div>
     );
   }
