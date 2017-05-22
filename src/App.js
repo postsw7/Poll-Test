@@ -10,6 +10,7 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      user: null,
       polls: [],
       username: '',
       title: '',
@@ -24,6 +25,41 @@ class App extends Component {
   }
 
   componentDidMount() {
+    const config = {
+      apiKey: "AIzaSyAjy12DzoLruJbJ9XsvD8L-I-zeX81D5yc",
+      authDomain: "classting-5d243.firebaseapp.com",
+      databaseURL: "https://classting-5d243.firebaseio.com",
+      projectId: "classting-5d243",
+      storageBucket: "classting-5d243.appspot.com",
+      messagingSenderId: "763590798520"
+    };
+    firebase.initializeApp(config);
+
+    const provider = new firebase.auth.GithubAuthProvider();
+    const auth = firebase.auth();
+    auth.signInWithPopup(provider)
+      .then(result => {
+        const token = result.credential.accessToken;
+        const user = result.user;
+        this.setState({
+          user: user
+        })
+        // uid: LDtTRLnXwcPJjMQdte9kttahP8h2
+        console.log(result);
+      })
+      .catch(err => {
+        alert(err.message);
+      })
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        console.log('AuthUser', user, this.logout.className);
+      } else {
+        console.log('not logged in');
+        this.logout.className = 'hide';
+      }
+    })
+
     const rootRef = firebase.database().ref();
     // const userRef = rootRef.child('user');
     const pollRef = rootRef.child('poll');
@@ -34,13 +70,15 @@ class App extends Component {
     //     username: snap.val()
     //   })
     // })
-
     pollRef.on('child_added', snap => {
-      console.log('value!!', snap.val());
-      this.setState({
-        polls: this.state.polls.concat(snap.val()),
-        votingPeriod: snap.val().votingPeriod
+      console.log('value!!', snap.key, snap.val());
+      const pollList = snap.val();
+      for (let key in pollList) {
+        this.setState({
+          polls: this.state.polls.concat(pollList[key])
+          // votingPeriod: snap.val().votingPeriod
       })
+      }
     })
 
     pollRef.on('child_changed', snap => {
@@ -50,12 +88,10 @@ class App extends Component {
     })
 
     pollRef.on('child_removed', snap => {
-      const removeIdx = this.state.polls.indexOf(snap.val());
+      // const removeIdx = this.state.polls.indexOf(snap.val());
+      console.log(snap.val(), 'VALUE');
       this.setState({
-        polls: [].concat(
-          this.state.polls.slice(0, removeIdx),
-          this.state.polls.slice(removeIdx+1)
-        )
+        polls: []
       })
     })
   }
@@ -76,8 +112,8 @@ class App extends Component {
 
     // Write the new poll's data simultaneously in the polls list and the user's poll list.
     var updates = {};
-    updates['/poll/' + newPollKey] = pollData;
-    updates['/user/' + uid + '/' + newPollKey] = pollData;
+    // updates['/poll/' + newPollKey] = pollData;
+    updates['/poll/' + uid + '/' + newPollKey] = pollData;
 
     return firebase.database().ref().update(updates);
   }
@@ -127,7 +163,7 @@ class App extends Component {
     pollOptions[opTwo.value] = 0;
     pollOptions[opThree.value] = 0;
 
-    this.createNewPoll(0, this.state.username, this.state.title, pollOptions, this.state.votingPeriod);
+    this.createNewPoll(this.state.user.uid, this.state.username, this.state.title, pollOptions, this.state.votingPeriod);
     this.close();
   }
 
@@ -153,6 +189,7 @@ class App extends Component {
   }
 
   handleSubmit (e) {
+    e.preventDefault();
     this.setState({
       options: this.state.options[this.state.optionVoted]++,
       showDetailModal: false,
@@ -160,14 +197,17 @@ class App extends Component {
     })
   }
 
-  deletePoll () {
+  handleLogout (e) {
+    firebase.auth().signOut();
+  }
 
+  deletePoll () {
     // var newPollKey = firebase.database().ref().child('poll').push().key;
 
     // Write the new post's data simultaneously in the posts list and the user's post list.
     var updates = {};
-    updates['/poll/'] = null;
-    updates['/user/' + 0 + '/'] = null;
+    // updates['/poll/'] = null;
+    updates['/poll/' + this.state.user.uid + '/'] = null;
 
     return firebase.database().ref().update(updates);
   }
@@ -186,6 +226,7 @@ class App extends Component {
         />
         <Button bsStyle="primary" onClick={this.open.bind(this)}>Create Poll</Button>
         <Button onClick={this.deletePoll.bind(this)}>Delete Poll</Button>
+        <Button className="logoutBtn" ref={ref => { this.logout = ref; }} onClick={this.handleLogout.bind(this)}>Log out</Button>
         <Modals
           showModal={this.state.showModal}
           showDetailModal={this.state.showDetailModal}
