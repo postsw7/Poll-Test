@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 import PollList from './components/PollListComponent';
-import Modals from './components/ModalsComponent';
+import ModalManager from './components/ModalManagerComponent';
 import { Button } from 'react-bootstrap';
 import * as firebase from 'firebase';
 
@@ -12,16 +12,20 @@ class App extends Component {
     this.state = {
       user: null,
       polls: [],
-      username: '',
-      title: '',
-      options: {},
-      votingPeriod: null,
-      showModal: false,
-      showDetailModal: false,
-      showResultModal: false,
-      showAnotherModal: false,
+      poll: {},
+      showCreatePollModal: false,
+      showPollDetailModal: false,
+      showVoteSuccessModal: false,
+      showPollVotingModal: false,
       optionVoted: null
-    }
+    };
+
+    this.modalKeyMap = {
+      create: "showCreatePollModal",
+      voting: "showPollVotingModal",
+      detail: "showPollDetailModal",
+      success: "showVoteSuccessModal"
+    };
   }
 
   componentDidMount() {
@@ -33,10 +37,12 @@ class App extends Component {
       storageBucket: "classting-5d243.appspot.com",
       messagingSenderId: "763590798520"
     };
+
     firebase.initializeApp(config);
 
     const provider = new firebase.auth.GithubAuthProvider();
     const auth = firebase.auth();
+
     auth.signInWithPopup(provider)
       .then(result => {
         const token = result.credential.accessToken;
@@ -49,7 +55,7 @@ class App extends Component {
       })
       .catch(err => {
         alert(err.message);
-      })
+      });
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
@@ -58,143 +64,49 @@ class App extends Component {
         console.log('not logged in');
         this.logout.className = 'hide';
       }
-    })
+    });
 
-    const rootRef = firebase.database().ref();
-    // const userRef = rootRef.child('user');
-    const pollRef = rootRef.child('poll');
-
-    // userRef.on('value', snap => {
-    //   console.log(snap.val())
-    //   this.setState({
-    //     username: snap.val()
-    //   })
-    // })
-    pollRef.on('child_added', snap => {
-      console.log('value!!', snap.key, snap.val());
-      const pollList = snap.val();
-      for (let key in pollList) {
-        this.setState({
-          polls: this.state.polls.concat(pollList[key])
-          // votingPeriod: snap.val().votingPeriod
-      })
-      }
-    })
-
-    pollRef.on('child_changed', snap => {
-      this.setState({
-        polls: this.state.polls.concat(snap.val())
-      })
-    })
-
-    pollRef.on('child_removed', snap => {
-      // const removeIdx = this.state.polls.indexOf(snap.val());
-      console.log(snap.val(), 'VALUE');
-      this.setState({
-        polls: []
-      })
-    })
   }
 
-  createNewPoll (uid, username, title, options, period) {
-
-    var pollData = {
-      creator: username,
-      uid: uid,
-      options: options,
-      title: title,
-      voteCount: 0,
-      votingPeriod: period
-    };
-
+  createNewPoll (poll) {
     // Get a key for a new Poll.
-    var newPollKey = firebase.database().ref().child('poll').push().key;
+    const pollKey = firebase.database().ref().child('polls').push().key;
 
     // Write the new poll's data simultaneously in the polls list and the user's poll list.
     var updates = {};
-    // updates['/poll/' + newPollKey] = pollData;
-    updates['/poll/' + uid + '/' + newPollKey] = pollData;
+
+    updates['/polls/' + pollKey] = poll;
+
+    updates['/users/' + this.state.user.uid + '/polls/' + pollKey] = poll;
+    // updates['/users/' + this.state.user.uid + '/polls'] = ;
 
     return firebase.database().ref().update(updates);
   }
 
-  open () {
+  close (key) {
     this.setState({
-      showModal: true
-    })
+      [this.modalKeyMap[key]]: false
+    });
   }
 
-  openAnotherModal () {
-    this.setState({
-      showAnotherModal: true
-    })
+  createPoll (poll) {
+    this.setState((prevState, props) => {
+      prevState.polls.push(poll);
+      return {
+        polls: prevState.polls,
+        showCreatePollModal: false
+      };
+    });
+
+    this.createNewPoll(poll);
   }
 
-  openDetailModal () {
+  handleSubmit (poll) {
     this.setState({
-      showDetailModal: true
-    })
-  }
+      poll
+    });
 
-  close () {
-    this.setState({
-      showModal: false,
-      showDetailModal: false,
-      showResultModal: false,
-      showAnotherModal: false
-    })
-  }
-
-  handleTitle (e) {
-    this.setState({
-      title: e.target.value
-    })
-  }
-
-  handleUsername (e) {
-    this.setState({
-      username: e.target.value
-    })
-  }
-
-  handleOptions (opOne, opTwo, opThree) {
-    const pollOptions = {}
-    pollOptions[opOne.value] = 0;
-    pollOptions[opTwo.value] = 0;
-    pollOptions[opThree.value] = 0;
-
-    this.createNewPoll(this.state.user.uid, this.state.username, this.state.title, pollOptions, this.state.votingPeriod);
-    this.close();
-  }
-
-  handleDate (votingPeriod) {
-    this.setState({
-      votingPeriod: votingPeriod
-    })
-  }
-
-  handlePolls (poll) {
-    this.setState({
-      username: poll.creator,
-      title: poll.title,
-      options: poll.options,
-      votingPeriod: poll.votingPeriod
-    })
-  }
-
-  handleVoting (e) {
-    this.setState({
-      optionVoted: e.target.value
-    })
-  }
-
-  handleSubmit (e) {
-    e.preventDefault();
-    this.setState({
-      options: this.state.options[this.state.optionVoted]++,
-      showDetailModal: false,
-      showResultModal: true
-    })
+    // Update to Firebase
   }
 
   handleLogout (e) {
@@ -212,37 +124,49 @@ class App extends Component {
     return firebase.database().ref().update(updates);
   }
 
+  openCreatePollModal () {
+    this.setState({
+      showCreatePollModal: true,
+      poll: {}
+    });
+
+    // Create in Firebase
+  }
+
+  onPollEntryClick (poll) {
+    this.setState({
+      showPollDetailModal: true,
+      poll
+    });
+  }
+
+  onVoteBtnClick (poll) {
+    this.setState({
+      showPollVotingModal: true,
+      poll
+    });
+  }
+
   render() {
     return (
       <div className="App">
         <PollList
-          username={this.state.username}
           polls={this.state.polls}
-          votingPeriod={this.state.votingPeriod}
-          openAnotherModal={this.openAnotherModal.bind(this)}
-          openDetailModal={this.openDetailModal.bind(this)}
-          close={this.close.bind(this)}
-          handlePolls={this.handlePolls.bind(this)}
+          onVoteBtnClick={this.onVoteBtnClick.bind(this)}
+          onPollEntryClick={this.onPollEntryClick.bind(this)}
         />
-        <Button bsStyle="primary" onClick={this.open.bind(this)}>Create Poll</Button>
+        <Button bsStyle="primary" onClick={this.openCreatePollModal.bind(this)}>Create Poll</Button>
         <Button onClick={this.deletePoll.bind(this)}>Delete Poll</Button>
         <Button className="logoutBtn" ref={ref => { this.logout = ref; }} onClick={this.handleLogout.bind(this)}>Log out</Button>
-        <Modals
-          showModal={this.state.showModal}
-          showDetailModal={this.state.showDetailModal}
-          showResultModal={this.state.showResultModal}
-          showAnotherModal={this.state.showAnotherModal}
-          close={this.close.bind(this)}
-          title={this.state.title}
-          username={this.state.username}
-          options={this.state.options}
-          votingPeriod={this.state.votingPeriod}
-          handleTitle={this.handleTitle.bind(this)}
-          handleUsername={this.handleUsername.bind(this)}
-          handleOptions={this.handleOptions.bind(this)}
-          handleDate={this.handleDate.bind(this)}
-          handleVoting={this.handleVoting.bind(this)}
+        <ModalManager
+          showCreatePollModal={this.state.showCreatePollModal}
+          showPollDetailModal={this.state.showPollDetailModal}
+          showVoteSuccessModal={this.state.showVoteSuccessModal}
+          showPollVotingModal={this.state.showPollVotingModal}
           handleSubmit={this.handleSubmit.bind(this)}
+          close={this.close.bind(this)}
+          poll={this.state.poll}
+          onCreatePoll={this.createPoll.bind(this)}
         />
       </div>
     );

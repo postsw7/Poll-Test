@@ -4,7 +4,7 @@
 'use strict';
 
 // Uncomment the following lines to use the react test utilities
-// import TestUtils from 'react-addons-test-utils';
+import TestUtils from 'react-addons-test-utils';
 import createComponent from 'helpers/shallowRenderHelper';
 
 import PollListComponent from 'components/PollListComponent.js';
