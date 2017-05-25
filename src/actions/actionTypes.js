@@ -1,0 +1,14 @@
+export const CREATE_POLL = 'CREATE_POLL';
+export const UPDATE_POLL = 'UPDATE_POLL';
+export const DELETE_POLL = 'DELETE_POLL';
+
+export const INCREMENT_VOTE = 'INCREMENT_VOTE';
+export const DECREMENT_VOTE = 'DECREMENT_VOTE';
+
+export const CREATE_OPTION = 'CREATE_OPTION';
+export const UPDATE_OPTION = 'UPDATE_OPTION';
+export const DELETE_OPTION = 'DELETE_OPTION';
+
+export const LOGIN_USER = 'LOGIN_USER';
+export const LOGOUT_USER = 'LOGOUT_USER';
+export const ADD_USER_POLLID = 'ADD_USER_POLLID';
