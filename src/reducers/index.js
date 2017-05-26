@@ -23,6 +23,7 @@ const polls = (state = initialState.polls, action) => {
       prevCreatePoll.byId[action.data.id] = {
         title: action.data.title,
         username: action.data.username,
+        startDate: action.data.startDate,
         expirationDate: action.data.expirationDate,
         options: action.data.options
       };
@@ -33,6 +34,7 @@ const polls = (state = initialState.polls, action) => {
       prevUpdatePoll.byId[action.data.id] = {
         title: action.data.title,
         username: action.data.username,
+        startDate: action.data.startDate,
         expirationDate: action.data.expirationDate,
         options: action.data.options
       };
@@ -70,11 +72,19 @@ const users = (state = initialState.users, action) => {
       });
       return Object.assign({}, state, prevLogoutUser);
     case types.ADD_USER_POLLID:
-      const prevUser = Object.assign({}, state);
-      if (!prevUser.byId[action.data.uid].pollIds.includes(action.data.pollId)) {
-        prevUser.byId[action.data.uid].pollIds.push(action.data.pollId);
+      const prevAddPollIdUser = Object.assign({}, state);
+      if (!prevAddPollIdUser.byId[action.data.uid].pollIds.includes(action.data.pollId)) {
+        prevAddPollIdUser.byId[action.data.uid].pollIds.push(action.data.pollId);
       }
-      return Object.assign({}, state, prevUser);
+      return Object.assign({}, state, prevAddPollIdUser);
+    case types.REMOVE_USER_POLLID:
+      const prevRemovePollIdUser = Object.assign({}, state);
+      if (prevRemovePollIdUser.byId[action.data.uid].pollIds.includes(action.data.pollId)) {
+        prevRemovePollIdUser.byId[action.data.uid].pollIds = prevRemovePollIdUser.byId[action.data.uid].pollIds.filter(pollId => {
+          return (pollId !== action.data.pollId);
+        });
+      }
+      return Object.assign({}, state, prevRemovePollIdUser);
     default:
       return Object.assign({}, state);
   }

@@ -12,3 +12,4 @@ export const DELETE_OPTION = 'DELETE_OPTION';
 export const LOGIN_USER = 'LOGIN_USER';
 export const LOGOUT_USER = 'LOGOUT_USER';
 export const ADD_USER_POLLID = 'ADD_USER_POLLID';
+export const REMOVE_USER_POLLID = 'REMOVE_USER_POLLID';

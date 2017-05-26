@@ -1,23 +1,25 @@
 import * as types from './actionTypes';
 
-export const createPoll = (id, title, username, expirationDate, options) => ({
+export const createPoll = (id, title, username, startDate, expirationDate, options) => ({
   type: types.CREATE_POLL,
   data: {
     id,
     title,
     username,
+    startDate,
     expirationDate,
     options
   }
 });
 
-export const updatePoll = (id, title, username, expirationDate, options) => {
+export const updatePoll = (id, title, username, startDate, expirationDate, options) => {
   return {
     type: types.UPDATE_POLL,
     data: {
       id,
       title,
       username,
+      startDate,
       expirationDate,
       options
     }
@@ -94,3 +96,10 @@ export const addUserPollId = (uid, pollId) => ({
   }
 });
 
+export const removeUserPollId = (uid, pollId) => ({
+  type: types.REMOVE_USER_POLLID,
+  data: {
+    uid,
+    pollId
+  }
+});

@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import '../styles/App.css';
-import PollList from './PollListComponent';
-import ModalManager from './ModalManagerComponent';
-import Login from './LoginComponent';
+import PollList from './PollList';
+import ModalManager from './ModalManager';
+import Login from './Login';
 import { Button } from 'react-bootstrap';
 import * as firebase from 'firebase';
 
@@ -51,7 +51,7 @@ class App extends Component {
 
     pollRef.on('child_added', snap => {
       console.log('value!!', snap.key, snap.val());
-      this.props.updatePoll(snap.key, snap.val().title, snap.val().username, snap.val().expirationDate, snap.val().options);
+      this.props.updatePoll(snap.key, snap.val().title, snap.val().username, snap.val().startDate, snap.val().expirationDate, snap.val().options);
       if (snap.val().username === this.state.user.username) {
         this.props.addUserPollId(this.state.user.uid, snap.key);
       }
@@ -63,7 +63,7 @@ class App extends Component {
     pollRef.on('child_changed', snap => {
       console.log('CHANGED?', snap.key, snap.val());
       // debugger
-      this.props.updatePoll(snap.key, snap.val().title, snap.val().username, snap.val().expirationDate, snap.val().options);
+      this.props.updatePoll(snap.key, snap.val().title, snap.val().username, snap.val().startDate, snap.val().expirationDate, snap.val().options);
       this.setState({
         polls: this.state.polls.concat(snap.val())
       });
@@ -71,6 +71,7 @@ class App extends Component {
 
     pollRef.on('child_removed', snap => {
       console.log(snap.val(), 'POLL_REMOVED');
+      this.props.removeUserPollId(this.state.user.uid, snap.key);
       // debugger
       // const updates = {};
       // this.props.deletePoll(snap.key);
@@ -132,7 +133,7 @@ class App extends Component {
     poll.username = this.state.user.username;
     // debugger
     poll.options = this.state.options;
-    this.props.createPoll(pollId, poll.title, poll.username, poll.expirationDate, poll.options);
+    this.props.createPoll(pollId, poll.title, poll.username, poll.startDate, poll.expirationDate, poll.options);
     this.props.addUserPollId(uid, pollId);
     const updates = {};
     this.setState({
@@ -161,16 +162,9 @@ class App extends Component {
     return firebase.database().ref().update(updates);
   };
 
-  updatePollandOption (poll) {
+  updateFBOption () {
     const updates = {};
-    // poll.username = this.state.user.username;
     updates['/options/'] = this.props.options;
-    // for (let key in this.props.polls.byId) {
-    //   if (this.props.polls.byId[key].username === poll.username) {
-    //     this.props.updatePoll(key, poll.title, poll.username, poll.expirationDate, poll.options);
-    //   }
-    // }
-    // updates['/polls/'] = this.props.polls.byId;
     return firebase.database().ref().update(updates);
   }
 
@@ -208,7 +202,7 @@ class App extends Component {
     })
   }
 
-  handleSubmit (poll) {
+  handleVoteSubmit (poll) {
     console.log(poll,"PIKEEE");
     this.setState({
       showVoteSuccessModal: true,
@@ -247,6 +241,7 @@ class App extends Component {
     updates['/options/byId'] = this.props.options.byId;
     updates['/options/allIds'] = this.props.options.allIds;
     updates['/users/' + this.state.user.uid + '/pollIds/'] = null;
+
     return firebase.database().ref().update(updates);
   }
 
@@ -291,21 +286,21 @@ class App extends Component {
         <Button onClick={this.deletePoll.bind(this)}>Delete Poll</Button>
         <Button className="logoutBtn" ref={ref => { this.logout = ref; }} onClick={this.handleLogout.bind(this)}>Log out</Button>
         <ModalManager
-          createNewOption={this.createNewOption.bind(this)}
-          updateOption={this.props.updateOption}
-          incrementVote={this.props.incrementVote}
-          decrementVote={this.props.decrementVote}
-          updatePollandOption={this.updatePollandOption.bind(this)}
-          options={this.props.options}
           showCreatePollModal={this.state.showCreatePollModal}
           showPollDetailModal={this.state.showPollDetailModal}
           showVoteSuccessModal={this.state.showVoteSuccessModal}
           showPollVotingModal={this.state.showPollVotingModal}
-          handleSubmit={this.handleSubmit.bind(this)}
+          onCreatePoll={this.createPoll.bind(this)}
+          createNewOption={this.createNewOption.bind(this)}
+          incrementVote={this.props.incrementVote}
+          decrementVote={this.props.decrementVote}
+          updateFBOption={this.updateFBOption.bind(this)}
+          handleVoteSubmit={this.handleVoteSubmit.bind(this)}
           handleVoteSuccess={this.handleVoteSuccess.bind(this)}
           close={this.close.bind(this)}
           poll={this.state.poll}
-          onCreatePoll={this.createPoll.bind(this)}
+          options={this.props.options}
+          updateOption={this.props.updateOption}
         />
         </div>
       }

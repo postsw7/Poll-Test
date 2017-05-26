@@ -9,8 +9,8 @@ const mapStateToProps = (state) => ({
 })
 
 const mapDispatchToProps = (dispatch) => ({
-    createPoll: (id, title, username, expirationDate, options) => { dispatch(actions.createPoll(id, title, username, expirationDate, options)); },
-    updatePoll: (id, title, username, expirationDate, options) => { dispatch(actions.updatePoll(id, title, username, expirationDate, options)); },
+    createPoll: (id, title, username, startDate, expirationDate, options) => { dispatch(actions.createPoll(id, title, username, startDate, expirationDate, options)); },
+    updatePoll: (id, title, username, startDate, expirationDate, options) => { dispatch(actions.updatePoll(id, title, username, startDate, expirationDate, options)); },
     deletePoll: (id) => { dispatch(actions.deletePoll(id)); },
     incrementVote: (id) => { dispatch(actions.incrementVote(id)); },
     decrementVote: (id) => { dispatch(actions.decrementVote(id)); },
@@ -19,7 +19,8 @@ const mapDispatchToProps = (dispatch) => ({
     deleteOption: (id) => { dispatch(actions.deleteOption(id)); },
     logInUser: (id, username) => { dispatch(actions.logInUser(id, username)); },
     logOutUser: (id) => { dispatch(actions.logOutUser(id)); },
-    addUserPollId: (uid, pollId) => { dispatch(actions.addUserPollId(uid, pollId)); }
+    addUserPollId: (uid, pollId) => { dispatch(actions.addUserPollId(uid, pollId)); },
+    removeUserPollId: (uid, pollId) => { dispatch(actions.removeUserPollId(uid, pollId)); }
 })
 
 const AppContainer = connect(
