@@ -100,7 +100,6 @@ const options = (state = initialState.options, action) => {
       };
       prevCreateOptions.allIds.push(action.data.id);
       return Object.assign({}, state, prevCreateOptions);
-      // TODO: not using it
     case types.UPDATE_OPTION:
       const prevUpdateOptions = Object.assign({}, state);
       prevUpdateOptions.byId[action.data.id] = {

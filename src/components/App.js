@@ -44,13 +44,10 @@ class App extends Component {
     firebase.initializeApp(config);
 
     const rootRef = firebase.database().ref();
-    const userRef = rootRef.child('users');
-    // const pollRef = rootRef.child('polls');
     const pollRef = firebase.database().ref('polls');
     const optionRef = rootRef.child('options/byId');
 
     pollRef.on('child_added', snap => {
-      console.log('value!!', snap.key, snap.val());
       this.props.updatePoll(snap.key, snap.val().title, snap.val().username, snap.val().startDate, snap.val().expirationDate, snap.val().options);
       if (snap.val().username === this.state.user.username) {
         this.props.addUserPollId(this.state.user.uid, snap.key);
@@ -61,8 +58,6 @@ class App extends Component {
     });
 
     pollRef.on('child_changed', snap => {
-      console.log('CHANGED?', snap.key, snap.val());
-      // debugger
       this.props.updatePoll(snap.key, snap.val().title, snap.val().username, snap.val().startDate, snap.val().expirationDate, snap.val().options);
       this.setState({
         polls: this.state.polls.concat(snap.val())
@@ -70,36 +65,22 @@ class App extends Component {
     });
 
     pollRef.on('child_removed', snap => {
-      console.log(snap.val(), 'POLL_REMOVED');
       this.props.removeUserPollId(this.state.user.uid, snap.key);
-      // debugger
-      // const updates = {};
-      // this.props.deletePoll(snap.key);
-      // snap.val().options.forEach(optionId => {
-      //   this.props.deleteOption(optionId);
-      // })
-      // updates['/options/byId'] = this.props.options.byId;
-      // updates['/options/allIds'] = this.props.options.allIds;
-      // return firebase.database().ref().update(updates);
     });
 
     optionRef.on('child_added', snap => {
-      console.log('OPTION_ADDED', snap.key, snap.val());
       this.props.updateOption(snap.key, snap.val().text, snap.val().count);
     })
 
     optionRef.on('child_changed', snap => {
-      console.log('OPTION_Changed', snap.key, snap.val());
     })
 
     optionRef.on('child_removed', snap => {
-      console.log('OPTION_REMOVED', snap.key, snap.val());
       this.props.deleteOption(snap.key);
     })
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        console.log('USER LOGGED IN:::', user);
         const username = user.email;
         const uid = user.uid;
 
@@ -115,7 +96,6 @@ class App extends Component {
           }
         }
       } else {
-        console.log('USER NOT LOGGED IN');
         this.props.logOutUser(this.state.user.uid);
         this.setState({
           isLoggedin: false,
@@ -131,7 +111,6 @@ class App extends Component {
     // Write the new poll's data simultaneously in the polls list and the user's poll list.
     const uid = this.state.user.uid;
     poll.username = this.state.user.username;
-    // debugger
     poll.options = this.state.options;
     this.props.createPoll(pollId, poll.title, poll.username, poll.startDate, poll.expirationDate, poll.options);
     this.props.addUserPollId(uid, pollId);
@@ -140,10 +119,6 @@ class App extends Component {
       options: []
     })
     updates['/polls/' + pollId] = poll;
-    // updates['/polls/byId/'] = this.props.polls.byId;
-    // updates['/polls/allIds/'] = this.props.polls.allIds;
-
-    // updates['/users/byId/' + this.state.user.uid] = user;
     updates['/users/' + uid + '/pollIds/'] = this.props.users.byId[uid].pollIds;
     updates['/users/' + uid + '/username/'] = this.state.user.username;
     return firebase.database().ref().update(updates);
@@ -151,7 +126,6 @@ class App extends Component {
 
   createNewOption (text) {
     const optionId = firebase.database().ref().child('options').push().key;
-    const uid = this.state.user.uid;
     this.props.createOption(optionId, text);
     this.setState({
       options: this.state.options.concat(optionId)
@@ -190,7 +164,7 @@ class App extends Component {
     const auth = firebase.auth();
     const promise = auth.signInWithEmailAndPassword(email, password)
     promise.catch(e => {
-      console.log(e.message);
+      console.error(e.message);
     })
   }
 
@@ -198,22 +172,18 @@ class App extends Component {
     const auth = firebase.auth();
     const promise = auth.createUserWithEmailAndPassword(email, password)
     promise.catch(e => {
-      console.log(e.message);
+      console.error(e.message);
     })
   }
 
   handleVoteSubmit (poll) {
-    console.log(poll,"PIKEEE");
     this.setState({
       showVoteSuccessModal: true,
       poll
     });
-
-    // Update to Firebase
   }
 
   handleVoteSuccess () {
-    console.log(this.state.poll);
     this.setState({
       showVoteSuccessModal: false,
       showPollDetailModal: true
@@ -250,8 +220,6 @@ class App extends Component {
       showCreatePollModal: true,
       poll: {}
     });
-
-    // Create in Firebase
   }
 
   onPollEntryClick (poll) {
